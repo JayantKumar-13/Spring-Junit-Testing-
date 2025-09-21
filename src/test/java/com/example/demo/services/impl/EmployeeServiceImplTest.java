@@ -17,8 +17,7 @@ import org.springframework.context.annotation.Import;
 import java.util.List;
 import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 
@@ -44,8 +43,8 @@ class EmployeeServiceImplTest {
     void setUp() {
         mockEmployee = Employee.builder()
                 .id(1L)
-                .email("anuj@gmail.com")
-                .name("Anuj")
+                .email("jay@gmail.com")
+                .name("Jayant")
                 .salary(200L)
                 .build();
 
@@ -137,5 +136,15 @@ class EmployeeServiceImplTest {
 
         verify(employeeRepository).findById(mockEmployeeDto.getId());
         verify(employeeRepository, never()).save(any());
+    }
+
+    @Test
+    void testDeleteEmployee_WhenEmployeeIsValid_ThenDeleteEmployee(){
+        when(employeeRepository.existsById(1L)).thenReturn(true);
+        assertThatCode(() -> employeeService.deleteEmployee(1L)).doesNotThrowAnyException();
+        verify(employeeRepository).deleteById(1L);
+
+
+
     }
 }
