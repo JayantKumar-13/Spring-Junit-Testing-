@@ -6,44 +6,24 @@ import com.example.demo.repositories.EmployeeRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.web.reactive.server.WebTestClient;
 
-@AutoConfigureWebTestClient
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 
-class EmployeeControllerTestIT {
 
-    @Autowired
-    private WebTestClient webTestClient;
+class EmployeeControllerTestIT extends AbstractIntegrationTest {
+
+
 
     @Autowired
     private EmployeeRepository employeeRepository;
 
-    private Employee TestEmployee;
-
-    private EmployeeDto testEmployeeDto;
 
     @BeforeEach
     void setUp(){
-        TestEmployee = Employee.builder()
-                .id(1L)
-                .email("jay@gmail.com")
-                .name("Jayant")
-                .salary(200L)
-                .build();
-        testEmployeeDto = EmployeeDto.builder()
-                .id(1L)
-                .email("jay@gmail.com")
-                .name("Jayant")
-                .salary(200L)
-                .build();
         employeeRepository.deleteAll();         // Used to clear the database
     }
     @Test
     void testGetEmployeeBtId_success(){
-        Employee savedEmployee = employeeRepository.save(TestEmployee);
+        Employee savedEmployee = employeeRepository.save(testEmployee);
         webTestClient.get()
                 .uri("/employees/{id}" , savedEmployee.getId())// here we don't have to specify the whole path because we are running on the localHost
                 .exchange()
@@ -68,7 +48,7 @@ class EmployeeControllerTestIT {
 
     @Test
     void testCreateNewEmployee_whenEmployeeAlreadyExists_thenThrowException() {
-        Employee savedEmployee = employeeRepository.save(TestEmployee);        // saving the employee
+        Employee savedEmployee = employeeRepository.save(testEmployee);        // saving the employee
 
         webTestClient.post()           // saving the employee with same id as saved earlier
                 .uri("/employees")
@@ -100,7 +80,7 @@ class EmployeeControllerTestIT {
 
     @Test
     void testUpdateEmployee_whenAttemptingToUpdateTheEmail_thenThrowException() {
-        Employee savedEmployee = employeeRepository.save(TestEmployee);
+        Employee savedEmployee = employeeRepository.save(testEmployee);
         testEmployeeDto.setName("Random Name");
         testEmployeeDto.setEmail("random@gmail.com");
 
@@ -110,5 +90,46 @@ class EmployeeControllerTestIT {
                 .exchange()
                 .expectStatus().is5xxServerError();
     }
+
+    @Test
+    void testUpdateEmployee_whenEmployeeIsValid_thenUpdateEmployee() {
+        Employee savedEmployee = employeeRepository.save(testEmployee);
+        testEmployeeDto.setName("Random Name");
+        testEmployeeDto.setSalary(250L);
+
+        webTestClient.put()
+                .uri("/employees/{id}", savedEmployee.getId())
+                .bodyValue(testEmployeeDto)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(EmployeeDto.class)
+                .isEqualTo(testEmployeeDto);
+    }
+
+
+    @Test
+    void testDeleteEmployee_whenEmployeeDoesNotExists_thenThrowException() {
+        webTestClient.delete()
+                .uri("/employees/1")
+                .exchange()
+                .expectStatus().isNotFound();
+    }
+
+    @Test
+    void testDeleteEmployee_whenEmployeeExists_thenDeleteEmployee() {
+        Employee savedEmployee = employeeRepository.save(testEmployee);
+
+        webTestClient.delete()
+                .uri("/employees/{id}", savedEmployee.getId())
+                .exchange()
+                .expectStatus().isNoContent()
+                .expectBody(Void.class);
+
+        webTestClient.delete()
+                .uri("/employees/{id}", savedEmployee.getId())
+                .exchange()
+                .expectStatus().isNotFound();
+    }
+
 
 }
